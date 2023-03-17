@@ -1,5 +1,6 @@
 from sklearn.impute import KNNImputer
 from utils import *
+import matplotlib.pyplot as plt
 
 
 def knn_impute_by_user(matrix, valid_data, k):
@@ -19,7 +20,6 @@ def knn_impute_by_user(matrix, valid_data, k):
     # We use NaN-Euclidean distance measure.
     mat = nbrs.fit_transform(matrix)
     acc = sparse_matrix_evaluate(valid_data, mat)
-    print("Validation Accuracy: {}".format(acc))
     return acc
 
 
@@ -37,7 +37,9 @@ def knn_impute_by_item(matrix, valid_data, k):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    acc = None
+    nbrs = KNNImputer(n_neighbors=k)
+    mat = np.transpose(nbrs.fit_transform(np.transpose(matrix)))
+    acc = sparse_matrix_evaluate(valid_data, mat)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -45,9 +47,9 @@ def knn_impute_by_item(matrix, valid_data, k):
 
 
 def main():
-    sparse_matrix = load_train_sparse("../data").toarray()
-    val_data = load_valid_csv("../data")
-    test_data = load_public_test_csv("../data")
+    sparse_matrix = load_train_sparse("./data").toarray()
+    val_data = load_valid_csv("./data")
+    test_data = load_public_test_csv("./data")
 
     print("Sparse matrix:")
     print(sparse_matrix)
@@ -60,7 +62,54 @@ def main():
     # the best performance and report the test accuracy with the        #
     # chosen k*.                                                        #
     #####################################################################
-    pass
+    # Q1. (a)
+    print('\nkNN Impute by User:')
+    k_vals = [1, 6, 11, 16, 21, 26]
+    accuracy = []
+    
+    for k in k_vals:
+        acc = knn_impute_by_user(sparse_matrix, val_data, k)
+        print(f'Validation Accuracy for k={k}: {acc}')
+        accuracy.append(acc)
+    
+    # plotting
+    plt.figure()
+    
+    plt.plot(k_vals, accuracy, '-o')
+    plt.title('Validation Accuracy vs. k (Impute by User)')
+    plt.xlabel('k')
+    plt.ylabel('Accuracy')
+    plt.xticks(k_vals)
+    plt.savefig('./part_a/val_acc_vs_k-knn_impute_by_user.png')
+    
+    # Q1. (b)
+    k_ = 11
+    test_acc = knn_impute_by_user(sparse_matrix, test_data, k_)
+    print(f'Test Accuracy for k^*={k_}: {test_acc}')
+    
+    # Q1. (c)
+    print('\nkNN Impute by Item:')
+    k_vals = [1, 6, 11, 16, 21, 26]
+    accuracy = []
+    
+    for k in k_vals:
+        acc = knn_impute_by_item(sparse_matrix, val_data, k)
+        print(f'Validation Accuracy for k={k}: {acc}')
+        accuracy.append(acc)
+    
+    # plotting
+    plt.figure()
+    
+    plt.plot(k_vals, accuracy, '-o')
+    plt.title('Validation Accuracy vs. k (Impute by Item)')
+    plt.xlabel('k')
+    plt.ylabel('Accuracy')
+    plt.xticks(k_vals)
+    plt.savefig('./part_a/val_acc_vs_k-knn_impute_by_item.png')
+    
+    k_ = 21
+    test_acc = knn_impute_by_item(sparse_matrix, test_data, k_)
+    print(f'Test Accuracy for k^*={k_}: {test_acc}')
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
