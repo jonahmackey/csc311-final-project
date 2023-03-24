@@ -80,7 +80,7 @@ def main():
     plt.xlabel('k')
     plt.ylabel('Accuracy')
     plt.xticks(k_vals)
-    plt.savefig('./part_a/val_acc_vs_k-knn_impute_by_user.png')
+    plt.savefig('./part_a/images/val_acc_vs_k-knn_impute_by_user.png')
     
     # Q1. (b)
     k_ = 11
@@ -105,7 +105,7 @@ def main():
     plt.xlabel('k')
     plt.ylabel('Accuracy')
     plt.xticks(k_vals)
-    plt.savefig('./part_a/val_acc_vs_k-knn_impute_by_item.png')
+    plt.savefig('./part_a/images/val_acc_vs_k-knn_impute_by_item.png')
     
     k_ = 21
     test_acc = knn_impute_by_item(sparse_matrix, test_data, k_)
