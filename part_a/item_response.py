@@ -9,7 +9,7 @@ def sigmoid(x):
     return np.exp(x) / (1 + np.exp(x))
 
 
-def neg_log_likelihood(data, theta, beta):
+def neg_log_likelihood(matrix, theta, beta):
     """ Compute the negative log-likelihood.
 
     You may optionally replace the function arguments to receive a matrix.
@@ -25,13 +25,19 @@ def neg_log_likelihood(data, theta, beta):
     # Implement the function as described in the docstring.             #
     #####################################################################
     log_lklihood = 0.
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            c_ij = matrix[i, j]
+            first_term = -c_ij * np.log(np.exp(beta[j] - theta[i]) + 1)
+            second_term = -(1 - c_ij) * np.log(1 + np.exp(theta[i] - beta[j]))
+            log_lklihood += first_term + second_term
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
     return -log_lklihood
 
 
-def update_theta_beta(data, lr, theta, beta):
+def update_theta_beta(matrix, lr, theta, beta):
     """ Update theta and beta using gradient descent.
 
     You are using alternating gradient descent. Your update should look:
@@ -52,14 +58,26 @@ def update_theta_beta(data, lr, theta, beta):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    pass
+    for idx in range(len(theta)):
+        theta_derivative = 0.
+        beta_derivative = 0.
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[1]):
+                c_ij = matrix[i, j]
+                if c_ij != np.nan:
+                    theta_derivative += ...  # TODO
+                    beta_derivative += ...  # TODO
+        theta[idx] = theta[idx] - lr * theta_derivative
+
+    for 
+        beta[idx] = beta[idx] - lr * beta_derivative
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
     return theta, beta
 
 
-def irt(data, val_data, lr, iterations):
+def irt(matrix, val_data, lr, iterations):
     """ Train IRT model.
 
     You may optionally replace the function arguments to receive a matrix.
@@ -79,11 +97,11 @@ def irt(data, val_data, lr, iterations):
     val_acc_lst = []
 
     for i in range(iterations):
-        neg_lld = neg_log_likelihood(data, theta=theta, beta=beta)
+        neg_lld = neg_log_likelihood(matrix, theta=theta, beta=beta)
         score = evaluate(data=val_data, theta=theta, beta=beta)
         val_acc_lst.append(score)
         print("NLLK: {} \t Score: {}".format(neg_lld, score))
-        theta, beta = update_theta_beta(data, lr, theta, beta)
+        theta, beta = update_theta_beta(matrix, lr, theta, beta)
 
     # TODO: You may change the return values to achieve what you want.
     return theta, beta, val_acc_lst
@@ -120,7 +138,18 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    pass
+    lr = ...
+    iterations = ...
+    theta, beta, val_acc_lst = irt(sparse_matrix, val_data, lr, iterations)
+    final_val_acc = evaluate(data=val_data, theta=theta, beta=beta)
+    final_test_acc = evaluate(data=test_data, theta=theta, beta=beta)
+    if final_val_acc != val_acc_lst[-1]:
+        print('\033[93m' + f'Final validation accuracy: {final_val_acc} is not the same as '
+                           f'the last element in the list: {val_acc_lst[-1]}' + '\033[0m')
+    print('-' * 30)
+    print(f'Final validation accuracy: {final_val_acc}')
+    print(f'Final test accuracy: {final_test_acc}')
+    print('-' * 30)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
