@@ -1,3 +1,5 @@
+from matplotlib import pyplot as plt
+
 from utils import *
 
 import numpy as np
@@ -58,18 +60,24 @@ def update_theta_beta(matrix, lr, theta, beta):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
+    # TODO: Correct? (Check in OH)
+
     for idx in range(len(theta)):
         theta_derivative = 0.
-        beta_derivative = 0.
         for i in range(matrix.shape[0]):
             for j in range(matrix.shape[1]):
                 c_ij = matrix[i, j]
                 if c_ij != np.nan:
                     theta_derivative += ...  # TODO
-                    beta_derivative += ...  # TODO
         theta[idx] = theta[idx] - lr * theta_derivative
 
-    for 
+    for idx in range(len(beta)):
+        beta_derivative = 0.
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[1]):
+                c_ij = matrix[i, j]
+                if c_ij != np.nan:
+                    beta_derivative += ...  # TODO
         beta[idx] = beta[idx] - lr * beta_derivative
     #####################################################################
     #                       END OF YOUR CODE                            #
@@ -90,21 +98,29 @@ def irt(matrix, val_data, lr, iterations):
     :param iterations: int
     :return: (theta, beta, val_acc_lst)
     """
-    # TODO: Initialize theta and beta.
-    theta = None
-    beta = None
+    # TODO: Play with initialization (ASK TA?)
+    theta = np.zeros(matrix.shape[0])
+    beta = np.zeros(matrix.shape[1])
 
     val_acc_lst = []
+    trn_acc_lst = []
+    neg_llds = []
 
     for i in range(iterations):
         neg_lld = neg_log_likelihood(matrix, theta=theta, beta=beta)
-        score = evaluate(data=val_data, theta=theta, beta=beta)
-        val_acc_lst.append(score)
-        print("NLLK: {} \t Score: {}".format(neg_lld, score))
+        neg_llds.append(neg_lld)
+
+        # TODO: Does it make sense to evaluate on train set here?
+        trn_score = evaluate(data=matrix, theta=theta, beta=beta)
+        trn_acc_lst.append(trn_score)
+
+        val_score = evaluate(data=val_data, theta=theta, beta=beta)
+        val_acc_lst.append(val_score)
+        print("NLLK: {} \t Score: {}".format(neg_lld, val_score))
         theta, beta = update_theta_beta(matrix, lr, theta, beta)
 
     # TODO: You may change the return values to achieve what you want.
-    return theta, beta, val_acc_lst
+    return theta, beta, val_acc_lst, trn_acc_lst, neg_llds
 
 
 def evaluate(data, theta, beta):
@@ -138,18 +154,45 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    lr = ...
-    iterations = ...
-    theta, beta, val_acc_lst = irt(sparse_matrix, val_data, lr, iterations)
+    # Set the hyperparameters.
+    lr = ...  # TODO
+    iterations = ...  # TODO
+
+    # Train the model.
+    theta, beta, val_acc_lst, trn_acc_lst, neg_llds = irt(sparse_matrix, val_data, lr, iterations)
+
+    # Evaluate on the validation and test set.
     final_val_acc = evaluate(data=val_data, theta=theta, beta=beta)
     final_test_acc = evaluate(data=test_data, theta=theta, beta=beta)
     if final_val_acc != val_acc_lst[-1]:
         print('\033[93m' + f'Final validation accuracy: {final_val_acc} is not the same as '
                            f'the last element in the list: {val_acc_lst[-1]}' + '\033[0m')
     print('-' * 30)
+    print(f'Hyperparameters: lr={lr}, iterations={iterations}')
     print(f'Final validation accuracy: {final_val_acc}')
-    print(f'Final test accuracy: {final_test_acc}')
+    # TODO: Print test accuracy at the end.
+    # print(f'Final test accuracy: {final_test_acc}')
     print('-' * 30)
+
+    def create_and_save_plot(x, y, x_label, y_label, title, file_name):
+        plt.plot(x, y)
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.title(title)
+        plt.savefig(file_name)
+        plt.clf()
+
+    # Plot all lists.
+    create_and_save_plot(range(iterations), val_acc_lst,
+                         'Iterations', 'Validation Accuracy',
+                         'Validation Accuracy vs. Iterations', 'val_acc.png')
+    create_and_save_plot(range(iterations), trn_acc_lst,
+                         'Iterations', 'Training Accuracy',
+                         'Training Accuracy vs. Iterations', 'trn_acc.png')
+    create_and_save_plot(range(iterations), neg_llds,
+                         'Iterations', 'Negative Log Likelihood',
+                         'Negative Log Likelihood vs. Iterations', 'nllk.png')
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -158,7 +201,11 @@ def main():
     # TODO:                                                             #
     # Implement part (d)                                                #
     #####################################################################
-    pass
+    # TODO: Switch to deterministic mode in future.
+    js = np.random.choice(sparse_matrix.shape[1], 3, replace=False)
+    # TODO: Question for TA: What do you mean vary theta for a question?
+    #  Theta is student specific so I'm not sure what you mean by varying theta for a question.
+    #  Do we report all students somehow? Like how vary a whole vector in one axis?
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
