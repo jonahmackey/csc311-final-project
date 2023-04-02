@@ -15,7 +15,8 @@ from tqdm import tqdm
 
 def resample(sparse_matrix, percent_set):
     """Set num_set elements that are not np.nan to np.nan (sparsify)."""
-    # # TODO: Ask TA: Is this the right way to do resampling?
+    # TODO: Ask TA: Is this the right way to do resampling?, this is sample by entry describe in report
+    # TODO: Should I sample rows to?
     sparse_matrix = copy.deepcopy(sparse_matrix)
     print(f'OG sparse_matrix.shape: {sparse_matrix.shape}')
 
@@ -85,7 +86,7 @@ def main():
     test_data = load_public_test_csv("../data")
 
     # Create 3 samples from the training set.
-    percent_set = 0.3
+    percent_set = 0.2
     print(f"Percent of non-NaN elements set to np.nan: {percent_set * 100}%")
     print(f'Resampling {percent_set * 100}% of the training set 3 times...')
     print("\nResampling matrix 1...")

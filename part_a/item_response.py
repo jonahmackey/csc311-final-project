@@ -60,12 +60,12 @@ def update_theta_beta(data, lr, theta, beta):
     # TODO: what about nan entries in sparse matrix?
     # Gradient step for theta
     for user_idx, question_idx, is_correct in zip(data["user_id"], data["question_id"], data["is_correct"]):
-        x = theta[user_idx] - beta[question_idx] 
+        x = theta[user_idx] - beta[question_idx]
         theta[user_idx] += lr * (is_correct - sigmoid(x))
-        
+
     # Gradient step for beta
     for user_idx, question_idx, is_correct in zip(data["user_id"], data["question_id"], data["is_correct"]):
-        x = theta[user_idx] - beta[question_idx] 
+        x = theta[user_idx] - beta[question_idx]
         beta[question_idx] -= lr * (is_correct - sigmoid(x))
     #####################################################################
     #                       END OF YOUR CODE                            #
@@ -86,8 +86,8 @@ def irt(train_data, val_data, lr, iterations):
     :param iterations: int
     :return: (theta, beta, val_acc_lst)
     """
-    # Initialize theta and beta
-    theta = np.random.randn(542) 
+    # Initialize theta and beta TODO:  random.randn? 0-1?
+    theta = np.random.randn(542)
     beta = np.random.randn(1774)
 
     val_acc_lst = []
@@ -97,18 +97,18 @@ def irt(train_data, val_data, lr, iterations):
 
     for i in range(iterations):
         # print(f'ITERATION {i}:')
-        
+
         # update theta and beta
         theta, beta = update_theta_beta(train_data, lr, theta, beta)
-        
+
         # negative likelihood on training set
         trn_neg_lld = neg_log_likelihood(data=train_data, theta=theta, beta=beta)
         trn_neg_llds.append(trn_neg_lld)
 
-        # accuracy on training set
+        # accuracy on training set TODO: TA stick to val?
         trn_score = evaluate(data=train_data, theta=theta, beta=beta)
         trn_acc_lst.append(trn_score)
-        
+
         # print("TRN NLLK: {} \t TRN Score: {}".format(trn_neg_lld, trn_score))
 
         # negative likelihood on validation set
@@ -120,13 +120,13 @@ def irt(train_data, val_data, lr, iterations):
         val_acc_lst.append(val_score)
 
         # print("VAL NLLK: {} \t VAL Score: {}".format(val_neg_lld, val_score), '\n')
-        
+
     return theta, beta, val_acc_lst, trn_acc_lst, trn_neg_llds, val_neg_llds
 
 
 def evaluate(data, theta, beta):
     """ Evaluate the model given data and return the accuracy.
-    
+
     :param data: A dictionary {user_id: list, question_id: list,
     is_correct: list}
     :param theta: Vector
@@ -165,7 +165,7 @@ def main():
     # Evaluate on the validation and test set.
     final_val_acc = evaluate(data=val_data, theta=theta, beta=beta)
     final_test_acc = evaluate(data=test_data, theta=theta, beta=beta)
-    
+
     if final_val_acc != val_acc_lst[-1]:
         print('\033[93m' + f'Final validation accuracy: {final_val_acc} is not the same as '
                            f'the last element in the list: {val_acc_lst[-1]}' + '\033[0m')
