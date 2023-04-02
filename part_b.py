@@ -5,12 +5,9 @@ from matplotlib import pyplot as plt
 
 from utils import load_train_csv, load_train_sparse, load_valid_csv, load_public_test_csv, create_and_save_plot
 from part_a.item_response import sigmoid
+from part_a.item_response import train as v0_train
 import numpy as np
 from tqdm import tqdm
-
-
-def compute_x(user_idx, question_idx, subject_idxs, theta, beta):
-    return theta[user_idx] - beta[question_idx]
 
 
 def v1_compute_x(user_idx, question_idx, subject_idxs, theta, beta):
@@ -340,13 +337,15 @@ def train(train_data, val_data, test_data, question_meta, lr, iterations, versio
             final_val_acc = v2_evaluate(data=val_data, theta=theta, beta=beta)
             final_test_acc = v2_evaluate(data=test_data, theta=theta, beta=beta)
 
+    # final_test_acc = 0.0  # TODO: REMOVE WHEN WANT TO SEE
     if final_val_acc != val_acc_lst[-1]:
         print('\033[93m' + f'Final validation accuracy: {final_val_acc} is not the same as '
                            f'the last element in the list: {val_acc_lst[-1]}' + '\033[0m')
     print('-' * 30)
     print(f'Hyperparameters: lr={lr}, iterations={iterations}')
-    print(f'Final validation accuracy: {final_val_acc}')
-    # print(f'Final test accuracy: {final_test_acc}')
+    print(f'Final training accuracy: {round(trn_acc_lst[-1] * 100, 4)}')
+    print(f'Final validation accuracy: {round(final_val_acc * 100, 4)}')
+    print(f'Final test accuracy: {round(final_test_acc * 100, 4)}')
     print('-' * 30)
 
     # Plot all lists with version in title and filename
@@ -359,7 +358,7 @@ def train(train_data, val_data, test_data, question_meta, lr, iterations, versio
     #                      f'Negative Log Likelihood vs. Iterations (v{version})',
     #                      f'./part_b_images/irt_nllk_v{version}.png')
 
-    return val_acc_lst, trn_acc_lst, trn_neg_llds, val_neg_llds
+    return val_acc_lst, trn_acc_lst, trn_neg_llds, val_neg_llds, final_test_acc
 
 
 def load_question_meta(path):
@@ -370,6 +369,38 @@ def load_question_meta(path):
         for line in reader:
             question_meta.append(line)
     return question_meta
+
+
+def plot_all_versions(iterations, v0_trn, v0_val, v1_trn, v1_val, v2_trn, v2_val, v3_trn, v3_val,
+                      title, x_label, y_label, filename,
+                      v0_test_pt=None, v1_test_pt=None, v2_test_pt=None, v3_test_pt=None):
+    # Plot all training and validation data on same plot
+    # (training is solid, validation is dashed, and each version is a different colour)
+    # v0 should be black
+    plt.figure()
+    plt.plot(range(iterations), v0_trn, 'k', label='v0 training')
+    plt.plot(range(iterations), v0_val, 'k--', label='v0 validation')
+    plt.plot(range(iterations), v1_trn, 'r', label='v1 training')
+    plt.plot(range(iterations), v1_val, 'r--', label='v1 validation')
+    plt.plot(range(iterations), v2_trn, 'g', label='v2 training')
+    plt.plot(range(iterations), v2_val, 'g--', label='v2 validation')
+    plt.plot(range(iterations), v3_trn, 'b', label='v3 training')
+    plt.plot(range(iterations), v3_val, 'b--', label='v3 validation')
+
+    if v0_test_pt is not None:
+        plt.plot(v0_test_pt[0], v0_test_pt[1], 'ko', label='v0 test')
+    if v1_test_pt is not None:
+        plt.plot(v1_test_pt[0], v1_test_pt[1], 'ro', label='v1 test')
+    if v2_test_pt is not None:
+        plt.plot(v2_test_pt[0], v2_test_pt[1], 'go', label='v2 test')
+    if v3_test_pt is not None:
+        plt.plot(v3_test_pt[0], v3_test_pt[1], 'bo', label='v3 test')
+
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.legend(fontsize='small')
+    plt.savefig(filename)
 
 
 def main():
@@ -386,41 +417,39 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    lr = 0.01
-    iterations = 50
-    v1_val_acc_lst, v1_trn_acc_lst, v1_trn_neg_llds, v1_val_neg_llds = \
-        train(train_data, val_data, test_data, question_meta, lr=lr, iterations=iterations, version=3)
-    v2_val_acc_lst, v2_trn_acc_lst, v2_trn_neg_llds, v2_val_neg_llds = \
-        train(train_data, val_data, test_data, question_meta, lr=lr, iterations=iterations, version=2)
-    v3_val_acc_lst, v3_trn_acc_lst, v3_trn_neg_llds, v3_val_neg_llds = \
-        train(train_data, val_data, test_data, question_meta, lr=lr, iterations=iterations, version=3)
+    lrs = [0.01, 0.001, 0.0001, 0.1]
+    iterations = 30
+    for lr in lrs:
+        print(f'Training v0 with lr={lr} and iterations={iterations}...')
+        _, _, v0_val_acc_lst, v0_trn_acc_lst, v0_trn_neg_llds, v0_val_neg_llds, v0_test_acc = \
+            v0_train(train_data, val_data, test_data, lr=lr, iterations=iterations)
+        print(f'Training v1 with lr={lr} and iterations={iterations}...')
+        v1_val_acc_lst, v1_trn_acc_lst, v1_trn_neg_llds, v1_val_neg_llds, v1_test_acc = \
+            train(train_data, val_data, test_data, question_meta, lr=lr, iterations=iterations, version=1)
+        print(f'Training v2 with lr={lr} and iterations={iterations}...')
+        v2_val_acc_lst, v2_trn_acc_lst, v2_trn_neg_llds, v2_val_neg_llds, v2_test_acc = \
+            train(train_data, val_data, test_data, question_meta, lr=lr, iterations=iterations, version=2)
+        print(f'Training v3 with lr={lr} and iterations={iterations}...')
+        v3_val_acc_lst, v3_trn_acc_lst, v3_trn_neg_llds, v3_val_neg_llds, v3_test_acc = \
+            train(train_data, val_data, test_data, question_meta, lr=lr, iterations=iterations, version=3)
 
-    def plot_all_versions(v1_trn, v1_val, v2_trn, v2_val, v3_trn, v3_val, title, x_label, y_label, filename):
-        # Plot all training and validation data on same plot
-        # (training is solid, validation is dashed, and each version is a different colour)
-        plt.figure()
-        plt.plot(range(iterations), v1_trn, 'r', label='v1 training')
-        plt.plot(range(iterations), v1_val, 'r--', label='v1 validation')
-        plt.plot(range(iterations), v2_trn, 'g', label='v2 training')
-        plt.plot(range(iterations), v2_val, 'g--', label='v2 validation')
-        plt.plot(range(iterations), v3_trn, 'b', label='v3 training')
-        plt.plot(range(iterations), v3_val, 'b--', label='v3 validation')
-        plt.title(title)
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
-        plt.legend()
-        plt.savefig(filename)
+        plot_all_versions(iterations, v0_trn_acc_lst, v0_val_acc_lst,
+                          v1_trn_acc_lst, v1_val_acc_lst,
+                          v2_trn_acc_lst, v2_val_acc_lst,
+                          v3_trn_acc_lst, v3_val_acc_lst,
+                          'Accuracy vs. Iterations', 'Iterations', 'Accuracy',
+                          f'./part_b_images/irt_acc_all_lr{lr}.png',
+                          v0_test_pt=(iterations, v0_test_acc),
+                          v1_test_pt=(iterations, v1_test_acc),
+                          v2_test_pt=(iterations, v2_test_acc),
+                          v3_test_pt=(iterations, v3_test_acc))
 
-    plot_all_versions(v1_trn_acc_lst, v1_val_acc_lst,
-                      v2_trn_acc_lst, v2_val_acc_lst,
-                      v3_trn_acc_lst, v3_val_acc_lst,
-                      'Accuracy vs. Iterations', 'Iterations', 'Accuracy',
-                      './part_b_images/irt_acc_all.png')
-    plot_all_versions(v1_trn_neg_llds, v1_val_neg_llds,
-                      v2_trn_neg_llds, v2_val_neg_llds,
-                      v3_trn_neg_llds, v3_val_neg_llds,
-                      'Negative Log Likelihood vs. Iterations', 'Iterations', 'Negative Log Likelihood',
-                      './part_b_images/irt_nllk_all.png')
+        plot_all_versions(iterations, v0_trn_neg_llds, v0_val_neg_llds,
+                          v1_trn_neg_llds, v1_val_neg_llds,
+                          v2_trn_neg_llds, v2_val_neg_llds,
+                          v3_trn_neg_llds, v3_val_neg_llds,
+                          'Negative Log Likelihood vs. Iterations', 'Iterations', 'Negative Log Likelihood',
+                          f'./part_b_images/irt_nllk_all_lr{lr}.png')
 
 
 if __name__ == "__main__":

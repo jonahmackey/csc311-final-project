@@ -144,22 +144,7 @@ def evaluate(data, theta, beta):
            / len(data["is_correct"])
 
 
-def main():
-    train_data = load_train_csv("./data")
-    # You may optionally use the sparse matrix.
-    sparse_matrix = load_train_sparse("./data")
-    val_data = load_valid_csv("./data")
-    test_data = load_public_test_csv("./data")
-
-    #####################################################################
-    # TODO:                                                             #
-    # Tune learning rate and number of iterations. With the implemented #
-    # code, report the validation and test accuracy.                    #
-    #####################################################################
-    # Set the hyperparameters.
-    lr = 0.01
-    iterations = 100
-
+def train(train_data, val_data, test_data, lr, iterations, save_plots=False):
     # Train the model.
     theta, beta, val_acc_lst, trn_acc_lst, trn_neg_llds, val_neg_llds = irt(train_data, val_data, lr, iterations)
 
@@ -167,45 +152,67 @@ def main():
     final_val_acc = evaluate(data=val_data, theta=theta, beta=beta)
     final_test_acc = evaluate(data=test_data, theta=theta, beta=beta)
 
+    # final_test_acc = 0.0  # TODO: REMOVE WHEN WANT TO SEE
     if final_val_acc != val_acc_lst[-1]:
         print('\033[93m' + f'Final validation accuracy: {final_val_acc} is not the same as '
                            f'the last element in the list: {val_acc_lst[-1]}' + '\033[0m')
     print('-' * 30)
     print(f'Hyperparameters: lr={lr}, iterations={iterations}')
-    print(f'Final validation accuracy: {final_val_acc}')
-    print(f'Final test accuracy: {final_test_acc}')
+    print(f'Final training accuracy: {round(trn_acc_lst[-1] * 100, 4)}')
+    print(f'Final validation accuracy: {round(final_val_acc * 100, 4)}')
+    print(f'Final test accuracy: {round(final_test_acc * 100, 4)}')
     print('-' * 30)
 
-    # Plot all lists.
-    create_and_save_plot(range(iterations), trn_acc_lst,
-                         'Iterations', 'Training Accuracy',
-                         'Training Accuracy vs. Iterations', './part_a/images/irt_trn_acc.png')
-    create_and_save_plot(range(iterations), val_acc_lst,
-                         'Iterations', 'Validation Accuracy',
-                         'Validation Accuracy vs. Iterations', './part_a/images/irt_val_acc.png')
-    create_and_save_plot(range(iterations), trn_neg_llds,
-                         'Iterations', 'Negative Log Likelihood',
-                         'Training Negative Log Likelihood vs. Iterations', './part_a/images/irt_trn_nllk.png')
-    create_and_save_plot(range(iterations), val_neg_llds,
-                         'Iterations', 'Negative Log Likelihood',
-                         'Validation Negative Log Likelihood vs. Iterations', './part_a/images/irt_val_nllk.png')
-    #####################################################################
-    #                       END OF YOUR CODE                            #
-    #####################################################################
+    # Plot all lists. TODO: change .. to .?
+    if save_plots:
+        create_and_save_plot(range(iterations), trn_acc_lst, val_acc_lst,
+                             'Iterations', 'Training Accuracy',
+                             'Accuracy vs. Iterations', '../part_a/images/irt_acc.png')
+        create_and_save_plot(range(iterations), trn_neg_llds, val_neg_llds,
+                             'Iterations', 'Negative Log Likelihood',
+                             'Negative Log Likelihood vs. Iterations', '../part_a/images/irt_nllk.png')
 
-    #####################################################################
-    # TODO:                                                             #
-    # Implement part (d)                                                #
-    #####################################################################
-    # TODO: Switch to deterministic mode in future.
+    return theta, beta, val_acc_lst, trn_acc_lst, trn_neg_llds, val_neg_llds, final_test_acc
+
+
+def main():
+    # TODO: Change .. to .?
+    train_data = load_train_csv("../data")
+    # You may optionally use the sparse matrix.
+    sparse_matrix = load_train_sparse("../data")
+    val_data = load_valid_csv("../data")
+    test_data = load_public_test_csv("../data")
+
+    # Set hyperparameters
+    lr = 0.01
+    iterations = 100
+
+    # Train model
+    theta, beta, val_acc_lst, trn_acc_lst, trn_neg_llds, val_neg_llds, final_test_acc = \
+        train(train_data, val_data, test_data, lr, iterations, save_plots=True)
+
+    ## PART D ##
+    # TODO: Switch to deterministic mode?
     # js = np.random.choice(sparse_matrix.shape[1], 3, replace=False)
-    # TODO: Question for TA: What do you mean vary theta for a question?
-    #  Theta is student specific so I'm not sure what you mean by varying theta for a question.
-    #  Do we report all students somehow? Like how vary a whole vector in one axis?
-    #####################################################################
-    #                       END OF YOUR CODE                            #
-    #####################################################################
+    js = [214, 1555, 667]
+    print(f"Questions: {js}")
+    # Range theta from -10 to 10 with step size 0.1
+    theta_range = np.arange(-10, 10, 0.1)
+    for j_idx, j in enumerate(js):
+        probs = []
+        for theta in theta_range:
+            probs.append(sigmoid(theta - beta[j]))
+        plt.plot(theta_range, probs, label=f"Question {j}, beta={round(beta[j], 2)})")
+    plt.xlabel("Theta")
+    plt.ylabel("Probability of Answering Correctly")
+    plt.title("Probability of Answering Correctly vs. Theta")
+    plt.legend()
+    plt.savefig("../part_a/images/irt_prob_vs_theta.png")
+    plt.clf()
+    plt.close()
 
 
 if __name__ == "__main__":
     main()
+
+    # TODO: How come val neg llk is lower than trn neg llk? Shouldn't it be the other way around?

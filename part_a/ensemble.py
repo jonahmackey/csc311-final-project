@@ -15,8 +15,6 @@ from tqdm import tqdm
 
 def resample(sparse_matrix, percent_set):
     """Set num_set elements that are not np.nan to np.nan (sparsify)."""
-    # TODO: Ask TA: Is this the right way to do resampling?, this is sample by entry describe in report
-    # TODO: Should I sample rows to?
     sparse_matrix = copy.deepcopy(sparse_matrix)
     print(f'OG sparse_matrix.shape: {sparse_matrix.shape}')
 
@@ -36,21 +34,6 @@ def resample(sparse_matrix, percent_set):
     print(f'New sparse_matrix.shape: {sparse_matrix.shape}')
     return sparse_matrix
 
-    # num_set_so_far = 0
-    # while num_set_so_far < num_set:
-    # # TODO: Ask TA: OK to do range? (Using range so have tqdm)
-    # # for i in tqdm(range(num_set)):
-    #     # Print current progress with replacing print line
-    #     print(f"[{num_set_so_far}/{num_set}]")
-    #     x_idx = np.random.choice(sparse_matrix.shape[0], 1)
-    #     y_idx = np.random.choice(sparse_matrix.shape[1], 1)
-    #     if not np.isnan(sparse_matrix[x_idx, y_idx]):  # TODO: use isnan elsewhere
-    #         sparse_matrix[x_idx, y_idx] = np.nan
-    #         num_set_so_far += 1
-    # print(f"NAN'd {num_set_so_far} elements (wanted to NAN {num_set}).")
-    # return sparse_matrix
-
-
 def sparse_matrix_evaluate_ensemble(data, mat1, mat2, mat3, threshold=0.5):
     """ Given the sparse matrix represent, return the accuracy of the prediction on data.
 
@@ -69,7 +52,6 @@ def sparse_matrix_evaluate_ensemble(data, mat1, mat2, mat3, threshold=0.5):
         mat3_pred = mat3[cur_user_id, cur_question_id] >= threshold
 
         # This basically does mode operation.
-        # TODO: Ask TA: Is this the right way to do ensemble? Mode or average before? Matter?
         pred = (int(mat1_pred) + int(mat2_pred) + int(mat3_pred)) >= 2
 
         # Now, compare the prediction with the actual value.
