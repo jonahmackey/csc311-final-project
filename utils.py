@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 from scipy.sparse import load_npz
 
 import numpy as np
@@ -189,3 +190,13 @@ def sparse_matrix_predictions(data, matrix, threshold=0.5):
         else:
             predictions.append(0.)
     return predictions
+
+def create_and_save_plot(x, y_trn, y_val, x_label, y_label, title, file_name):
+    plt.plot(x, y_trn, label="Training")
+    plt.plot(x, y_val, label="Validation")
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.legend()
+    plt.savefig(file_name)
+    plt.clf()
