@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
-from utils import *
+from utils import load_train_csv, load_train_sparse, load_valid_csv, load_public_test_csv, create_and_save_plot
 
 import numpy as np
 
@@ -66,7 +67,7 @@ def update_theta_beta(data, lr, theta, beta):
     # Gradient step for beta
     for user_idx, question_idx, is_correct in zip(data["user_id"], data["question_id"], data["is_correct"]):
         x = theta[user_idx] - beta[question_idx]
-        beta[question_idx] -= lr * (is_correct - sigmoid(x))
+        beta[question_idx] += lr * (sigmoid(x) - is_correct)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -95,7 +96,7 @@ def irt(train_data, val_data, lr, iterations):
     trn_neg_llds = []
     val_neg_llds = []
 
-    for i in range(iterations):
+    for i in tqdm(range(iterations)):
         # print(f'ITERATION {i}:')
 
         # update theta and beta
@@ -174,14 +175,6 @@ def main():
     print(f'Final validation accuracy: {final_val_acc}')
     print(f'Final test accuracy: {final_test_acc}')
     print('-' * 30)
-
-    def create_and_save_plot(x, y, x_label, y_label, title, file_name):
-        plt.plot(x, y)
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
-        plt.title(title)
-        plt.savefig(file_name)
-        plt.clf()
 
     # Plot all lists.
     create_and_save_plot(range(iterations), trn_acc_lst,
