@@ -9,25 +9,27 @@ from part_a.item_response import train as v0_train
 import numpy as np
 from tqdm import tqdm
 
+def v0_compute_x(user_idx, question_idx, subject_idxs, theta, beta, similarities): # NOTE added compute x func for og
+    return theta[user_idx] - beta[question_idx]
 
-def v1_compute_x(user_idx, question_idx, subject_idxs, theta, beta):
-    return theta[user_idx][subject_idxs].sum() - beta[question_idx]
+def v1_compute_x(user_idx, question_idx, subject_idxs, theta, beta, similarities):
+    return theta[user_idx][subject_idxs].sum() - beta[question_idx] # NOTE correct
 
 
-def v2_compute_x(user_idx, question_idx, subject_idxs, theta, beta):
-    return theta[user_idx][subject_idxs].sum() - len(subject_idxs) * beta[question_idx]
+def v2_compute_x(user_idx, question_idx, subject_idxs, theta, beta, similarities):
+    return theta[user_idx][subject_idxs].sum() - len(subject_idxs) * beta[question_idx] # NOTE correct
 
 
 def v3_compute_x(user_idx, question_idx, subject_idxs, theta, beta, similarities):
     return theta[user_idx][subject_idxs].sum() - beta[question_idx] * \
-        similarities[question_idx][subject_idxs].sum()
+        similarities[question_idx][subject_idxs].sum() # NOTE correct
 
-
-def v1_neg_log_likelihood(data, theta, beta):
-    """Compute the negative log-likelihood of version 1.
-
+def neg_log_likelihood(data, f_compute_x, theta, beta, similarities=None): # NOTE added param f_compute_x. func to compute x
+    """ Compute the negative log-likelihood.
+    
     :param data: A dictionary {user_id: list, question_id: list,
         is_correct: list, subject_ids: list[list[int]]}
+    :param f_compute_x: function used to compute x
     :param theta: List of Vectors
     :param beta: Vector
     :return: float
@@ -35,44 +37,8 @@ def v1_neg_log_likelihood(data, theta, beta):
     log_lklihood = 0.
     for user_idx, question_idx, is_correct, subject_idxs in \
             zip(data["user_id"], data["question_id"], data["is_correct"], data["subject_ids"]):
-        x = beta[question_idx] - theta[user_idx][subject_idxs].sum()
-        log_lklihood += -is_correct * np.logaddexp(0, x) - (1 - is_correct) * np.logaddexp(0, -x)
-    return -log_lklihood
-
-
-def v2_neg_log_likelihood(data, theta, beta):
-    """Compute the negative log-likelihood of version 2.
-
-    :param data: A dictionary {user_id: list, question_id: list,
-        is_correct: list, subject_ids: list[list[int]]}
-    :param theta: List of Vectors
-    :param beta: Vector
-    :return: float
-    """
-    log_lklihood = 0.
-    for user_idx, question_idx, is_correct, subject_idxs in \
-            zip(data["user_id"], data["question_id"], data["is_correct"], data["subject_ids"]):
-        x = len(subject_idxs) * beta[question_idx] - theta[user_idx][subject_idxs].sum()
-        log_lklihood += -is_correct * np.logaddexp(0, x) - (1 - is_correct) * np.logaddexp(0, -x)
-    return -log_lklihood
-
-
-def v3_neg_log_likelihood(data, theta, beta, similarities):
-    """Compute the negative log-likelihood of version 3.
-
-    :param data: A dictionary {user_id: list, question_id: list,
-        is_correct: list, subject_ids: list[list[int]]}
-    :param theta: List of Vectors
-    :param beta: Vector
-    :param similarities: Matrix of similarities of questions to subjects (questions x subjects).
-    :return: float
-    """
-    log_lklihood = 0.
-    for user_idx, question_idx, is_correct, subject_idxs in \
-            zip(data["user_id"], data["question_id"], data["is_correct"], data["subject_ids"]):
-        x = beta[question_idx] * similarities[question_idx][subject_idxs].sum() \
-            - theta[user_idx][subject_idxs].sum()
-        log_lklihood += -is_correct * np.logaddexp(0, x) - (1 - is_correct) * np.logaddexp(0, -x)
+        x = f_compute_x(user_idx, question_idx, subject_idxs, theta, beta, similarities)
+        log_lklihood += -is_correct * np.logaddexp(0, -x) - (1 - is_correct) * np.logaddexp(0, x) # NOTE changed sign on x here
     return -log_lklihood
 
 
@@ -91,14 +57,14 @@ def v1_update(data, lr, theta, beta):
             zip(data["user_id"], data["question_id"], data["is_correct"], data["subject_ids"]):
         x = v1_compute_x(user_idx, question_idx, subject_idxs, theta, beta)
         grad = is_correct - sigmoid(x)
-        for subject_idx in subject_idxs:  # TODO: Check with Jonah if this is correct.
+        for subject_idx in subject_idxs:  # NOTE correct
             theta[user_idx][subject_idx] += lr * grad
 
     # Gradient step for beta
     for user_idx, question_idx, is_correct, subject_idxs in \
             zip(data["user_id"], data["question_id"], data["is_correct"], data["subject_ids"]):
         x = v1_compute_x(user_idx, question_idx, subject_idxs, theta, beta)
-        beta[question_idx] += lr * (sigmoid(x) - is_correct)
+        beta[question_idx] += lr * (sigmoid(x) - is_correct) # NOTE correct
     return theta, beta
 
 
@@ -188,24 +154,27 @@ def irt(train_data, val_data, lr, iterations, num_subjects, version):
     trn_neg_llds = []
     val_neg_llds = []
 
-    for i in tqdm(range(iterations)):
+    for i in tqdm(range(iterations)): # NOTE change code in loop to account for new nllk function
         if version == 3:
             theta, beta, similarities = v3_update(train_data, lr, theta, beta, similarities)
-            trn_neg_lld = v3_neg_log_likelihood(data=train_data, theta=theta, beta=beta, similarities=similarities)
+            f = v3_compute_x
+            trn_neg_lld = neg_log_likelihood(data=train_data, f_compute_x=f, theta=theta, beta=beta, similarities=similarities)
             trn_score = v3_evaluate(data=train_data, theta=theta, beta=beta, similarities=similarities)
-            val_neg_lld = v3_neg_log_likelihood(data=val_data, theta=theta, beta=beta, similarities=similarities)
+            val_neg_lld = neg_log_likelihood(data=val_data, f_compute_x=f, theta=theta, beta=beta, similarities=similarities)
             val_score = v3_evaluate(data=val_data, theta=theta, beta=beta, similarities=similarities)
         elif version == 2:
             theta, beta = v2_update(train_data, lr, theta, beta)
-            trn_neg_lld = v2_neg_log_likelihood(data=train_data, theta=theta, beta=beta)
+            f = v2_compute_x
+            trn_neg_lld = neg_log_likelihood(data=train_data, f_compute_x=f, theta=theta, beta=beta)
             trn_score = v2_evaluate(data=train_data, theta=theta, beta=beta)
-            val_neg_lld = v2_neg_log_likelihood(data=val_data, theta=theta, beta=beta)
+            val_neg_lld = neg_log_likelihood(data=val_data, f_compute_x=f, theta=theta, beta=beta)
             val_score = v2_evaluate(data=val_data, theta=theta, beta=beta)
         elif version == 1:
+            f = v1_compute_x
             theta, beta = v1_update(train_data, lr, theta, beta)
-            trn_neg_lld = v1_neg_log_likelihood(data=train_data, theta=theta, beta=beta)
+            trn_neg_lld = neg_log_likelihood(data=train_data, f_compute_x=f, theta=theta, beta=beta)
             trn_score = v1_evaluate(data=train_data, theta=theta, beta=beta)
-            val_neg_lld = v1_neg_log_likelihood(data=val_data, theta=theta, beta=beta)
+            val_neg_lld = neg_log_likelihood(data=val_data, f_compute_x=f, theta=theta, beta=beta)
             val_score = v1_evaluate(data=val_data, theta=theta, beta=beta)
         else:
             raise ValueError("Version must be 1, 2, or 3.")
@@ -237,7 +206,7 @@ def v1_evaluate(data, theta, beta):
     pred = []
     for i, q in enumerate(data["question_id"]):
         u = data["user_id"][i]
-        subject_idxs = data["subject_ids"][i]  # TODO: make sure right
+        subject_idxs = data["subject_ids"][i]  # NOTE correct
         x = (v1_compute_x(u, q, subject_idxs, theta, beta)).sum()
         assert v1_compute_x(u, q, subject_idxs, theta, beta) == x
         p_a = sigmoid(x)
@@ -258,7 +227,7 @@ def v2_evaluate(data, theta, beta):
     pred = []
     for i, q in enumerate(data["question_id"]):
         u = data["user_id"][i]
-        subject_idxs = data["subject_ids"][i]  # TODO: make sure right
+        subject_idxs = data["subject_ids"][i]  # NOTE correct
         x = (v2_compute_x(u, q, subject_idxs, theta, beta)).sum()
         assert v2_compute_x(u, q, subject_idxs, theta, beta) == x
         p_a = sigmoid(x)
@@ -280,7 +249,7 @@ def v3_evaluate(data, theta, beta, similarities):
     pred = []
     for i, q in enumerate(data["question_id"]):
         u = data["user_id"][i]
-        subject_idxs = data["subject_ids"][i]  # TODO: make sure right
+        subject_idxs = data["subject_ids"][i]  # NOTE correct
         x = (v3_compute_x(u, q, subject_idxs, theta, beta, similarities)).sum()
         assert v3_compute_x(u, q, subject_idxs, theta, beta, similarities) == x
         p_a = sigmoid(x)
@@ -410,7 +379,7 @@ def main():
     train_data = load_train_csv("./data")
     val_data = load_valid_csv("./data")
     test_data = load_public_test_csv("./data")
-    question_meta = load_question_meta("./data/question_meta.csv")
+    question_meta = load_question_meta("./data/question_meta.csv") # list of length # questions
 
     #####################################################################
     # TODO:                                                             #
